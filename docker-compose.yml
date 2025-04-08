@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: hedge_fund_db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=hedgefund
+      - POSTGRES_PASSWORD=secret123
+      - POSTGRES_DB=investment_saas
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hedgefund -d investment_saas"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    container_name: hedge_fund_api
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=db
+      - DB_USER=hedgefund
+      - DB_PASSWORD=secret123
+      - DB_NAME=investment_saas
+      - DB_PORT=5432
+      - SECRET_KEY=supersecretkey123456789
+      - DEBUG=true
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8000
+    volumes:
+      - ./:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+
+volumes:
+  postgres_data:
